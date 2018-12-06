@@ -1,5 +1,5 @@
-let theQuestion
 // creating the p-element to display the question
+let theQuestion
 function displayQuestion () {
   theQuestion = document.createElement('p')
   document.querySelector('#quiz').appendChild(theQuestion)
@@ -16,6 +16,7 @@ req.addEventListener('load', function () {
   questionOne = JSON.parse(questionOne)
   console.log(questionOne)
   theQuestion.innerText = questionOne.question
+  // let nextURL = questionOne.nextURL
 })
 
 req.open('GET', 'http://vhost3.lnu.se:20080/question/1')
@@ -32,43 +33,52 @@ function createAnswerBox () {
 }
 createAnswerBox()
 
+// creating button
 function createButton () {
   let submitBtn = document.createElement('button')
   submitBtn.innerText = 'press'
   document.querySelector('#quiz').appendChild(submitBtn)
 }
 createButton()
+let result = {}
 
 function recieveAnswer () {
   let button = document.querySelector('#quiz button')
+  let answOne = document.querySelectorAll('#answerBox input')
 
   button.addEventListener('click', event => {
     let value = button.previousElementSibling.value
     if (value.length === 0) return
 
-    console.log(value)
+    result.answer = value
+    // answer = JSON.stringify(answer)
+
+    console.log(answOne)
+    sendAnswer()
   })
 }
-
 recieveAnswer()
 
-// function getAnswer () {
-//   let answOne = document.querySelectorAll('#answerBox input')
+async function sendAnswer (answer) {
+  let answ = new window.XMLHttpRequest()
 
-//   document.querySelector('#answerBox').addEventListener('blur', event => {
-//     if (answOne !== undefined) {
-//       answOne = answOne[0]
-//       console.log(answOne)
-//       let testing = answOne[0]
-//       console.log(testing)
-//     } else {
-//       console.log('wrong')
-//     }
-//   }, true)
+  answ.open('POST', 'http://vhost3.lnu.se:20080/answer/1')
+  answ.setRequestHeader('Content-type', 'application/json')
+
+  answ.send(JSON.stringify(result))
+}
+
+// async function sendingAnswer () {
+//   let data = {
+//     answer: 2
+//   }
+
+//   let res = await window.fetch('http://vhost3.lnu.se:20080/answer/1', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json'
+//     },
+//     body: JSON.stringify(data)
+//   })
 // }
-
-// getAnswer()
-
-let answ = new window.XMLHttpRequest()
-
-answ.addEventListener()
+// sendingAnswer()
