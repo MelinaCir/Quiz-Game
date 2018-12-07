@@ -1,23 +1,45 @@
-// function userName () {
-//   let userP = document.createElement('p')
-//   let theH2 = document.querySelectorAll('h1')[0]
-//   userP.innerText = 'Pick a nickname:'
-//   theH2.parentElement.insertBefore(userP, theH2.nextElementSibling)
-// }
-// userName()
+function userName () {
+  let userP = document.querySelectorAll('p')[0]
+  userP.innerText = 'Pick a nickname:'
+}
+userName()
 
-// function displayUserName () {
-//   let userDiv = document.createElement('div')
-//   userDiv.setAttribute('id', 'user')
-//   document.querySelector('body').appendChild(userDiv)
+function displayUserName () {
+  let userDiv = document.createElement('div')
+  userDiv.setAttribute('id', 'user')
+  document.querySelector('body').appendChild(userDiv)
 
-//   let userBox = document.createElement('input')
-//   userBox.setAttribute('type', 'text')
-//   userBox.setAttribute('id', 'userBox')
-//   document.querySelector('#user').appendChild(userBox)
-//   createButton()
-// }
-// displayUserName()
+  let userBox = document.createElement('input')
+  userBox.setAttribute('type', 'text')
+  userBox.setAttribute('id', 'userBox')
+  let quiz = document.getElementById('quiz')
+  quiz.insertBefore(userBox, quiz.childNodes[0])
+}
+displayUserName()
+
+// creating button
+function createButton () {
+  let submitBtn = document.createElement('button')
+  submitBtn.innerText = 'Start quiz'
+  document.querySelector('#quiz').appendChild(submitBtn)
+}
+createButton()
+
+function startQuiz () {
+  let button = document.querySelector('#quiz button')
+
+  button.addEventListener('click', event => {
+    console.log('you clicked!')
+    let nickName = button.previousElementSibling.value
+    let userBox = document.getElementById('userBox')
+    userBox.remove()
+    button.innerText = 'Answer!'
+    console.log(nickName)
+    displayQuestion()
+    server()
+  })
+}
+startQuiz()
 
 // creating the p-element to display the question
 let theQuestion
@@ -26,7 +48,7 @@ function displayQuestion () {
   // document.querySelector('#quiz').appendChild(theQuestion)
   theQuestion.innerText = ''
 }
-displayQuestion()
+// displayQuestion()
 
 // creating answer box
 let theAnswer
@@ -38,14 +60,6 @@ function createAnswerBox () {
   theAnswer.setAttribute('id', 'answerBox')
   quiz.insertBefore(theAnswer, quiz.childNodes[0])
 }
-
-// creating button
-function createButton () {
-  let submitBtn = document.createElement('button')
-  submitBtn.innerText = 'press'
-  document.querySelector('#quiz').appendChild(submitBtn)
-}
-createButton()
 
 // sending the request for the first question and displaying it in the p-element
 var nextURL = 'http://vhost3.lnu.se:20080/question/1'
@@ -81,7 +95,7 @@ async function server () {
   req.open('GET', nextURL)
   req.send()
 }
-server()
+// server()
 
 let result = {}
 
@@ -160,11 +174,11 @@ async function nextQuestion () {
 
 function createRadioBtn (text) {
   let radioDiv = document.createElement('div')
-  radioDiv.setAttribute('id', 'quiz')
+  radioDiv.setAttribute('id', 'altDiv' + text)
   let radioBtn = document.createElement('input')
 
   radioBtn.setAttribute('type', 'radio')
-  radioBtn.setAttribute('id', 'optionBtn')
+  radioBtn.setAttribute('id', 'option' + text)
   radioBtn.setAttribute('name', 'alt')
   let quiz = document.querySelector('#quiz')
   quiz.insertBefore(radioDiv, quiz.childNodes[0]).appendChild(radioBtn)
@@ -172,5 +186,5 @@ function createRadioBtn (text) {
   let radioLabel = document.createElement('label')
   radioLabel.setAttribute('for', 'optionBtn')
   radioLabel.innerText = text
-  document.querySelector('#optionBtn').appendChild(radioLabel)
+  document.querySelector('#altDiv' + text).appendChild(radioLabel)
 }
