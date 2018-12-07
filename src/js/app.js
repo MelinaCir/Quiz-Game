@@ -4,19 +4,7 @@ function userName () {
 }
 userName()
 
-function displayUserName () {
-  let userDiv = document.createElement('div')
-  userDiv.setAttribute('id', 'user')
-  document.querySelector('body').appendChild(userDiv)
-
-  let userBox = document.createElement('input')
-  userBox.setAttribute('type', 'text')
-  userBox.setAttribute('id', 'userBox')
-  let quiz = document.getElementById('quiz')
-  quiz.insertBefore(userBox, quiz.childNodes[0])
-}
-displayUserName()
-
+createAnswerBox()
 // creating button
 function createButton () {
   let submitBtn = document.createElement('button')
@@ -28,15 +16,15 @@ createButton()
 function startQuiz () {
   let button = document.querySelector('#quiz button')
 
-  button.addEventListener('click', event => {
+  button.addEventListener('click', function clickedButton (event) {
     console.log('you clicked!')
     let nickName = button.previousElementSibling.value
-    let userBox = document.getElementById('userBox')
-    userBox.remove()
+    document.getElementById('answerBox').value = ''
     button.innerText = 'Answer!'
     console.log(nickName)
     displayQuestion()
     server()
+    button.removeEventListener('click', clickedButton)
   })
 }
 startQuiz()
@@ -51,13 +39,14 @@ function displayQuestion () {
 // displayQuestion()
 
 // creating answer box
-let theAnswer
 
 function createAnswerBox () {
+  let theAnswer
   let quiz = document.getElementById('quiz')
   theAnswer = document.createElement('input')
   theAnswer.setAttribute('type', 'text')
   theAnswer.setAttribute('id', 'answerBox')
+  theAnswer.setAttribute('value', '')
   quiz.insertBefore(theAnswer, quiz.childNodes[0])
 }
 
@@ -75,17 +64,15 @@ async function server () {
     if (questionOne.hasOwnProperty('alternatives')) {
       console.log('alternatives')
       answerAlt = questionOne.alternatives
+      console.log(Object.keys(answerAlt))
 
       for (let i in answerAlt) {
         console.log(answerAlt[i])
         createRadioBtn(answerAlt[i])
       }
-      // createButton()
       recieveAnswer()
     } else {
       console.log('textbox')
-      createAnswerBox()
-      // createButton()
       recieveAnswer()
     }
     nextURL = questionOne.nextURL
@@ -97,24 +84,27 @@ async function server () {
 }
 // server()
 
+// Take the answer when button clicked and empty the answer options
 let result = {}
 
 function recieveAnswer () {
   let button = document.querySelector('#quiz button')
 
-  button.addEventListener('click', event => {
+  button.addEventListener('click', function buttonClicked () {
     let value = button.previousElementSibling.value
     if (value.length === 0) return
 
     result.answer = value
-    // answer = JSON.stringify(answer)
     let aBox = document.getElementById('answerBox')
     console.log(aBox)
     aBox.remove()
+
     sendAnswer()
+    button.removeEventListener('click', buttonClicked)
   })
 }
 
+// creating a post xmlrequest and sending answer
 let resultMessage
 
 async function sendAnswer () {
@@ -132,16 +122,25 @@ async function sendAnswer () {
     // theQuestion.innerText = resultMessage.message
     nextURL = resultMessage.nextURL
     console.log('in sendanswer2' + nextURL)
-    server()
+    checkResult()
   })
 }
 
 function checkResult () {
   if (resultMessage.message === 'Correct answer!') {
+    // theQuestion.innerText = resultMessage.message
     nextURL = resultMessage.nextURL
     server()
   } else {
-    // Game over - print results - play again?
+    theQuestion.innerText = resultMessage.message
+    // theQuestion.innerText = 'Game Over'
+    let startBtn = document.querySelector('#quiz button')
+    startBtn.innerText = 'Start again?'
+
+    // startBtn.addEventListener('click', event => {
+    // resetGame() - tex
+    //   // Game over - print results - play again?
+    // })
   }
 }
 let answerAlt = {}
@@ -174,17 +173,17 @@ async function nextQuestion () {
 
 function createRadioBtn (text) {
   let radioDiv = document.createElement('div')
-  radioDiv.setAttribute('id', 'altDiv' + text)
+  radioDiv.setAttribute('id', 'alt' + text)
   let radioBtn = document.createElement('input')
 
   radioBtn.setAttribute('type', 'radio')
   radioBtn.setAttribute('id', 'option' + text)
-  radioBtn.setAttribute('name', 'alt')
+  radioBtn.setAttribute('name', 'alter')
   let quiz = document.querySelector('#quiz')
   quiz.insertBefore(radioDiv, quiz.childNodes[0]).appendChild(radioBtn)
 
   let radioLabel = document.createElement('label')
   radioLabel.setAttribute('for', 'optionBtn')
   radioLabel.innerText = text
-  document.querySelector('#altDiv' + text).appendChild(radioLabel)
+  document.querySelector('#alt' + text).appendChild(radioLabel)
 }
