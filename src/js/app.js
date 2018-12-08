@@ -4,7 +4,6 @@ function userName () {
 }
 userName()
 
-createAnswerBox()
 // creating button
 function createButton () {
   let submitBtn = document.createElement('button')
@@ -14,29 +13,33 @@ function createButton () {
 createButton()
 
 function startQuiz () {
+  createAnswerBox()
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function clickedButton (event) {
     console.log('you clicked!')
     let nickName = button.previousElementSibling.value
-    document.getElementById('answerBox').value = ''
+    // document.getElementById('answerBox').value = ''
     button.innerText = 'Answer!'
     console.log(nickName)
+
+    let aBox = document.getElementById('answerBox')
+    aBox.remove()
+
     displayQuestion()
     server()
+
     button.removeEventListener('click', clickedButton)
   })
 }
 startQuiz()
 
 // creating the p-element to display the question
-let theQuestion
+let thePrompt
 function displayQuestion () {
-  theQuestion = document.querySelectorAll('p')[0]
-  // document.querySelector('#quiz').appendChild(theQuestion)
-  theQuestion.innerText = ''
+  thePrompt = document.querySelectorAll('p')[0]
+  thePrompt.innerText = ''
 }
-// displayQuestion()
 
 // creating answer box
 
@@ -52,30 +55,31 @@ function createAnswerBox () {
 
 // sending the request for the first question and displaying it in the p-element
 var nextURL = 'http://vhost3.lnu.se:20080/question/1'
+let theQuestion
 
 async function server () {
   let req = new window.XMLHttpRequest()
 
   req.addEventListener('load', function () {
-    let questionOne = req.responseText
-    questionOne = JSON.parse(questionOne)
-    theQuestion.innerText = questionOne.question
+    theQuestion = req.responseText
+    theQuestion = JSON.parse(theQuestion)
+    thePrompt.innerText = theQuestion.question
 
-    if (questionOne.hasOwnProperty('alternatives')) {
-      console.log('alternatives')
-      answerAlt = questionOne.alternatives
+    if (theQuestion.hasOwnProperty('alternatives')) {
+      let answerAlt = theQuestion.alternatives
       console.log(Object.keys(answerAlt))
 
-      for (let i in answerAlt) {
-        console.log(answerAlt[i])
-        createRadioBtn(answerAlt[i])
+      for (let key in answerAlt) {
+        let value = answerAlt[key]
+        console.log(key)
+        createRadioBtn(value, key)
       }
       recieveAnswer()
     } else {
-      console.log('textbox')
+      createAnswerBox()
       recieveAnswer()
     }
-    nextURL = questionOne.nextURL
+    nextURL = theQuestion.nextURL
   })
 
   console.log('in server' + nextURL)
@@ -91,15 +95,31 @@ function recieveAnswer () {
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function buttonClicked () {
-    let value = button.previousElementSibling.value
-    if (value.length === 0) return
+    if (theQuestion.hasOwnProperty('alternatives')) {
+      console.log('alternatives')
+      let buttons = document.getElementsByName('alter')
+      console.log(buttons)
 
-    result.answer = value
-    let aBox = document.getElementById('answerBox')
-    console.log(aBox)
-    aBox.remove()
+      for (let buttonKey in buttons) {
+        console.log(buttons[buttonKey].checked)
+      }
+      // if (document.getElementById('optionBtn').checked) {
 
+      //   let value = button.previousElementSibling.getAttribute('id')
+      //   result.answer = value
+
+      //   console.log('here!' + value)
+      // }
+    } else {
+      let value = button.previousElementSibling.value
+      if (value.length === 0) return
+
+      result.answer = value
+      let aBox = document.getElementById('answerBox')
+      aBox.remove()
+    }
     sendAnswer()
+
     button.removeEventListener('click', buttonClicked)
   })
 }
@@ -119,37 +139,40 @@ async function sendAnswer () {
   answ.addEventListener('load', function () {
     resultMessage = answ.responseText
     resultMessage = JSON.parse(resultMessage)
+
     // theQuestion.innerText = resultMessage.message
     nextURL = resultMessage.nextURL
     console.log('in sendanswer2' + nextURL)
+
     checkResult()
   })
 }
 
 function checkResult () {
   if (resultMessage.message === 'Correct answer!') {
-    // theQuestion.innerText = resultMessage.message
+    thePrompt.innerText = resultMessage.message
+    let nextBtn = document.querySelector('#quiz button')
+    nextBtn.innerText = 'Next Question'
     nextURL = resultMessage.nextURL
-    server()
+
+    nextBtn.addEventListener('click', function buttonClicked () {
+      server()
+    })
   } else {
-    theQuestion.innerText = resultMessage.message
+    thePrompt.innerText = resultMessage.message
     // theQuestion.innerText = 'Game Over'
     let startBtn = document.querySelector('#quiz button')
-    startBtn.innerText = 'Start again?'
+    startBtn.innerText = 'Start again'
 
-    // startBtn.addEventListener('click', event => {
-    // resetGame() - tex
-    //   // Game over - print results - play again?
-    // })
-  }
-}
-let answerAlt = {}
-function checkQuestionType () {
-  if (questionOne.hasOwnProperty('alternatives')) {
-    for (let i = 0; i < answerAlt.length; i++) {
-      answerAlt.alt =
-      createRadioBtn(answerAlt.value)
-    }
+    startBtn.addEventListener('click', function buttonClicked () {
+      nextURL = 'http://vhost3.lnu.se:20080/question/1'
+      startBtn.innerText = 'Answer!'
+
+      displayQuestion()
+      server()
+
+      startBtn.removeEventListener('click', buttonClicked)
+    })
   }
 }
 
@@ -161,7 +184,7 @@ async function nextQuestion () {
     let nextQ = nextReq.responseText
     nextQ = JSON.parse(nextQ)
     console.log(nextQ)
-    theQuestion.innerText = nextQ.question
+    thePrompt.innerText = nextQ.question
     // nextURL = nextQ.nextURL
   })
 
@@ -171,19 +194,21 @@ async function nextQuestion () {
   server()
 }
 
-function createRadioBtn (text) {
+function createRadioBtn (value, key) {
   let radioDiv = document.createElement('div')
-  radioDiv.setAttribute('id', 'alt' + text)
-  let radioBtn = document.createElement('input')
+  radioDiv.setAttribute('id', key)
 
+  let radioBtn = document.createElement('input')
   radioBtn.setAttribute('type', 'radio')
-  radioBtn.setAttribute('id', 'option' + text)
+  radioBtn.setAttribute('class', 'optionBtn')
   radioBtn.setAttribute('name', 'alter')
+
   let quiz = document.querySelector('#quiz')
   quiz.insertBefore(radioDiv, quiz.childNodes[0]).appendChild(radioBtn)
 
   let radioLabel = document.createElement('label')
-  radioLabel.setAttribute('for', 'optionBtn')
-  radioLabel.innerText = text
-  document.querySelector('#alt' + text).appendChild(radioLabel)
+  radioLabel.setAttribute('for', '.optionBtn')
+  radioLabel.innerText = value
+
+  document.querySelector('#' + key).appendChild(radioLabel)
 }
