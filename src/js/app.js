@@ -12,21 +12,18 @@ function createButton () {
 }
 createButton()
 
-let quizStorage = window.localStorage
+let quizStorage = window.sessionStorage
+let nickName
 
 function startQuiz () {
   createAnswerBox()
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function clickedButton (event) {
-    createTimer()
-
-    startTimer()
-
     console.log('you clicked!')
     let value = button.previousElementSibling.value
     if (value.length === 0) return
-    let nickName = button.previousElementSibling.value
+    nickName = button.previousElementSibling.value
 
     quizStorage.setItem('nickName', nickName)
     // document.getElementById('answerBox').value = ''
@@ -70,6 +67,8 @@ let theQuestion
 async function server () {
   let req = new window.XMLHttpRequest()
 
+  createTimer()
+  startTimer()
   req.addEventListener('load', function getQuestion () {
     theQuestion = req.responseText
     theQuestion = JSON.parse(theQuestion)
@@ -84,11 +83,13 @@ async function server () {
         console.log(key)
         createRadioBtn(value, key)
       }
-      recieveAnswer()
+      // recieveAnswer()
     } else {
       createAnswerBox()
-      recieveAnswer()
+      // recieveAnswer()
     }
+    recieveAnswer()
+
     nextURL = theQuestion.nextURL
     req.removeEventListener('load', getQuestion)
   })
@@ -106,6 +107,9 @@ function recieveAnswer () {
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function buttonClicked () {
+    stopTimer()
+    console.log(quizStorage)
+
     if (theQuestion.hasOwnProperty('alternatives')) {
       let buttons = document.getElementsByName('alter')
 
@@ -123,7 +127,6 @@ function recieveAnswer () {
         allButtonDivs[buttonDiv].remove()
       }
     } else {
-      console.log('dont be here')
       let value = button.previousElementSibling.value
 
       if (value.length === 0) return
@@ -143,7 +146,6 @@ let resultMessage
 
 async function sendAnswer () {
   let answ = new window.XMLHttpRequest()
-  console.log('in sendanswer' + nextURL)
 
   answ.open('POST', nextURL)
   answ.setRequestHeader('Content-type', 'application/json')
@@ -156,18 +158,16 @@ async function sendAnswer () {
 
     // theQuestion.innerText = resultMessage.message
     nextURL = resultMessage.nextURL
-    console.log('in sendanswer2' + nextURL)
 
     checkResult()
   })
 }
 
 function checkResult () {
+  thePrompt.innerText = resultMessage.message
+  let nextBtn = document.querySelector('#quiz button')
+
   if (resultMessage.message === 'Correct answer!') {
-    thePrompt.innerText = resultMessage.message
-
-    let nextBtn = document.querySelector('#quiz button')
-
     if (resultMessage.hasOwnProperty('nextURL')) {
       nextBtn.innerText = 'Next Question'
       nextURL = resultMessage.nextURL
@@ -178,9 +178,10 @@ function checkResult () {
       })
     } else {
       let gameOverText = document.createElement('h3')
-      gameOverText.innerText = 'Game done!'
       let quiz = document.querySelector('#quiz')
       quiz.insertBefore(gameOverText, quiz.childNodes[0])
+
+      gameOverText.innerText = 'Game done!'
       nextBtn.innerText = 'Get results!'
 
       nextBtn.addEventListener('click', function buttonClicked () {
@@ -189,43 +190,34 @@ function checkResult () {
       })
     }
   } else {
-    thePrompt.innerText = resultMessage.message
-    // theQuestion.innerText = 'Game Over'
-    let startBtn = document.querySelector('#quiz button')
-    startBtn.innerText = 'Start again'
+    quizStorage.clear()
+    quizStorage.setItem('nickname', nickName)
+    counter = 0
+    nextBtn.innerText = 'Start again'
 
-    startBtn.addEventListener('click', function buttonClicked () {
+    nextBtn.addEventListener('click', function buttonClicked () {
       nextURL = 'http://vhost3.lnu.se:20080/question/1'
-      startBtn.innerText = 'Answer!'
+      nextBtn.innerText = 'Answer!'
 
       displayQuestion()
       server()
 
-      startBtn.removeEventListener('click', buttonClicked)
+      nextBtn.removeEventListener('click', buttonClicked)
     })
   }
 }
 
 function printResults () {
-  console.log('WINNER ' + quizStorage.getItem('nickName'))
-}
+  let totalTime = 0
 
-async function nextQuestion () {
-  let nextReq = new window.XMLHttpRequest()
+  for (let i = 1; i < quizStorage.length; i++) {
+    totalTime += parseInt(quizStorage.getItem(quizStorage.key(i)))
+  }
+  let resultP = document.createElement('p')
+  resultP.innerText = nickName + ' won!' + '\nTotal time taken: ' + totalTime + ' seconds'
 
-  nextReq.addEventListener('load', function () {
-    console.log(nextReq.responseText)
-    let nextQ = nextReq.responseText
-    nextQ = JSON.parse(nextQ)
-    console.log(nextQ)
-    thePrompt.innerText = nextQ.question
-    // nextURL = nextQ.nextURL
-  })
-
-  console.log('in nxtq ' + nextURL)
-  nextReq.open('GET', nextURL)
-  nextReq.send()
-  server()
+  document.querySelector('#quiz').appendChild(resultP)
+  quizStorage.clear()
 }
 
 function createRadioBtn (value, key) {
@@ -251,22 +243,25 @@ function createRadioBtn (value, key) {
 // va
 function createTimer () {
   let timerDiv = document.createElement('div')
+  timerDiv.setAttribute('id', 'timerDiv')
 
   let timer = document.createElement('span')
   timer.setAttribute('id', 'time')
-  timer.textContent = 'lalala'
 
   timerDiv.appendChild(timer)
   let quiz = document.querySelector('#quiz')
   quiz.appendChild(timerDiv)
 }
 
+let theTimer
+let counter = 0
+let seconds
+
 function startTimer () {
   let display = document.querySelector('#time')
   let timer = 20
-  let seconds
 
-  setInterval(function () {
+  theTimer = setInterval(function () {
     seconds = parseInt(timer)
 
     display.textContent = 'You have: ' + seconds + ' seconds'
@@ -275,4 +270,14 @@ function startTimer () {
       display.textContent = 'Time up!'
     }
   }, 1000)
+}
+
+function stopTimer () {
+  clearInterval(theTimer)
+  counter++
+
+  quizStorage.setItem('time' + counter, seconds)
+  let timer = document.querySelector('#timerDiv')
+
+  timer.remove()
 }
