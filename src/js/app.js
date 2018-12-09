@@ -13,6 +13,7 @@ function createButton () {
 createButton()
 
 let quizStorage = window.sessionStorage
+let highScore = window.localStorage
 let nickName
 
 function startQuiz () {
@@ -208,15 +209,32 @@ function checkResult () {
 }
 
 function printResults () {
+  //
+  // TODO: Vi har tänkt fel om tiden. Total time left är det vi har, inte taken.
+  //
   let totalTime = 0
 
   for (let i = 1; i < quizStorage.length; i++) {
-    totalTime += parseInt(quizStorage.getItem(quizStorage.key(i)))
+    let timeLeft = parseInt(quizStorage.getItem(quizStorage.key(i)))
+    let timeTaken = 20 - timeLeft
+    totalTime += timeTaken
+    console.log(timeTaken)
   }
   let resultP = document.createElement('p')
   resultP.innerText = nickName + ' won!' + '\nTotal time taken: ' + totalTime + ' seconds'
 
   document.querySelector('#quiz').appendChild(resultP)
+
+  highScore.setItem(nickName, totalTime)
+  console.log('HIGHSCORE' + highScore)
+
+  for (let playerName in highScore) {
+    console.log('PLAYER ' + playerName)
+    let playerTime = highScore[playerName]
+
+    console.log('Time ' + playerTime)
+  }
+
   quizStorage.clear()
 }
 
@@ -259,7 +277,9 @@ let seconds
 
 function startTimer () {
   let display = document.querySelector('#time')
-  let timer = 20
+  let timer = 19
+
+  display.textContent = 'You have: 20 seconds'
 
   theTimer = setInterval(function () {
     seconds = parseInt(timer)
