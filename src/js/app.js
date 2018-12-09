@@ -12,16 +12,26 @@ function createButton () {
 }
 createButton()
 
+let quizStorage = window.localStorage
+
 function startQuiz () {
   createAnswerBox()
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function clickedButton (event) {
+    createTimer()
+
+    startTimer()
+
     console.log('you clicked!')
+    let value = button.previousElementSibling.value
+    if (value.length === 0) return
     let nickName = button.previousElementSibling.value
+
+    quizStorage.setItem('nickName', nickName)
     // document.getElementById('answerBox').value = ''
     button.innerText = 'Answer!'
-    console.log(nickName)
+    console.log(quizStorage)
 
     let aBox = document.getElementById('answerBox')
     aBox.remove()
@@ -60,7 +70,7 @@ let theQuestion
 async function server () {
   let req = new window.XMLHttpRequest()
 
-  req.addEventListener('load', function () {
+  req.addEventListener('load', function getQuestion () {
     theQuestion = req.responseText
     theQuestion = JSON.parse(theQuestion)
     thePrompt.innerText = theQuestion.question
@@ -80,6 +90,7 @@ async function server () {
       recieveAnswer()
     }
     nextURL = theQuestion.nextURL
+    req.removeEventListener('load', getQuestion)
   })
 
   console.log('in server' + nextURL)
@@ -96,22 +107,25 @@ function recieveAnswer () {
 
   button.addEventListener('click', function buttonClicked () {
     if (theQuestion.hasOwnProperty('alternatives')) {
-      console.log('alternatives')
       let buttons = document.getElementsByName('alter')
-      console.log(buttons)
 
       for (let buttonKey in buttons) {
-        console.log(buttons[buttonKey].checked)
+        let alternative = buttons[buttonKey]
+
+        if (alternative.checked) {
+          let value = alternative.parentNode.id
+          result.answer = value
+        }
       }
-      // if (document.getElementById('optionBtn').checked) {
+      let allButtonDivs = Array.from(document.querySelectorAll('.buttonDiv'))
 
-      //   let value = button.previousElementSibling.getAttribute('id')
-      //   result.answer = value
-
-      //   console.log('here!' + value)
-      // }
+      for (let buttonDiv in allButtonDivs) {
+        allButtonDivs[buttonDiv].remove()
+      }
     } else {
+      console.log('dont be here')
       let value = button.previousElementSibling.value
+
       if (value.length === 0) return
 
       result.answer = value
@@ -151,13 +165,29 @@ async function sendAnswer () {
 function checkResult () {
   if (resultMessage.message === 'Correct answer!') {
     thePrompt.innerText = resultMessage.message
-    let nextBtn = document.querySelector('#quiz button')
-    nextBtn.innerText = 'Next Question'
-    nextURL = resultMessage.nextURL
 
-    nextBtn.addEventListener('click', function buttonClicked () {
-      server()
-    })
+    let nextBtn = document.querySelector('#quiz button')
+
+    if (resultMessage.hasOwnProperty('nextURL')) {
+      nextBtn.innerText = 'Next Question'
+      nextURL = resultMessage.nextURL
+
+      nextBtn.addEventListener('click', function buttonClicked () {
+        server()
+        nextBtn.removeEventListener('click', buttonClicked)
+      })
+    } else {
+      let gameOverText = document.createElement('h3')
+      gameOverText.innerText = 'Game done!'
+      let quiz = document.querySelector('#quiz')
+      quiz.insertBefore(gameOverText, quiz.childNodes[0])
+      nextBtn.innerText = 'Get results!'
+
+      nextBtn.addEventListener('click', function buttonClicked () {
+        printResults()
+        nextBtn.removeEventListener('click', buttonClicked)
+      })
+    }
   } else {
     thePrompt.innerText = resultMessage.message
     // theQuestion.innerText = 'Game Over'
@@ -174,6 +204,10 @@ function checkResult () {
       startBtn.removeEventListener('click', buttonClicked)
     })
   }
+}
+
+function printResults () {
+  console.log('WINNER ' + quizStorage.getItem('nickName'))
 }
 
 async function nextQuestion () {
@@ -197,6 +231,7 @@ async function nextQuestion () {
 function createRadioBtn (value, key) {
   let radioDiv = document.createElement('div')
   radioDiv.setAttribute('id', key)
+  radioDiv.setAttribute('class', 'buttonDiv')
 
   let radioBtn = document.createElement('input')
   radioBtn.setAttribute('type', 'radio')
@@ -211,4 +246,33 @@ function createRadioBtn (value, key) {
   radioLabel.innerText = value
 
   document.querySelector('#' + key).appendChild(radioLabel)
+}
+
+// va
+function createTimer () {
+  let timerDiv = document.createElement('div')
+
+  let timer = document.createElement('span')
+  timer.setAttribute('id', 'time')
+  timer.textContent = 'lalala'
+
+  timerDiv.appendChild(timer)
+  let quiz = document.querySelector('#quiz')
+  quiz.appendChild(timerDiv)
+}
+
+function startTimer () {
+  let display = document.querySelector('#time')
+  let timer = 20
+  let seconds
+
+  setInterval(function () {
+    seconds = parseInt(timer)
+
+    display.textContent = 'You have: ' + seconds + ' seconds'
+
+    if (--timer < 0) {
+      display.textContent = 'Time up!'
+    }
+  }, 1000)
 }
