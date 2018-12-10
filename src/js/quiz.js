@@ -19,7 +19,7 @@ let user
 function userName () {
   user = document.createElement('p')
   user.setAttribute('id', 'userName')
-  user.innerText = 'Player: '
+  user.innerText = 'Player '
 
   let body = document.querySelector('body')
   body.insertBefore(user, body.childNodes[2])
@@ -52,7 +52,7 @@ function createAnswerBox () {
 }
 
 /**
- *
+ * Sets up the quiz for the start, creating the users nickname and calls the first question.
  */
 function startQuiz () {
   userName()
@@ -64,8 +64,8 @@ function startQuiz () {
   button.addEventListener('click', function clickedButton (event) {
     let value = button.previousElementSibling.value
     if (value.length === 0) return
-    nickName = button.previousElementSibling.value
-    user.innerText = 'Player: ' + nickName
+    nickName = 'Player ' + button.previousElementSibling.value
+    user.innerText = nickName
 
     quizStorage.setItem('nickName', nickName)
     button.innerText = 'Answer!'
@@ -79,34 +79,42 @@ function startQuiz () {
   })
 }
 
-// sending the request for the first question and displaying it in the p-element
 var nextURL = 'http://vhost3.lnu.se:20080/question/1'
 let theQuestion
-
+/**
+ * Sends the request for the question and returns the response
+ *
+ * @returns response - The response from the server including the question.
+ */
 async function reqQuestion () {
   let request = await window.fetch(nextURL)
   let response = await request.json()
   return response
 }
 
+/**
+ * When response have been recieved from server, checks if it is a question with alternatives
+ * and creates alternatives or answer input box
+ * And displays the question to the user
+ */
 async function getQuestion () {
   createTimer()
   startTimer()
+
   let req = await reqQuestion()
 
   theQuestion = req
   thePrompt.innerText = theQuestion.question
 
   let button = document.querySelector('#quiz button')
-
   button.innerText = 'Answer'
 
   if (theQuestion.hasOwnProperty('alternatives')) {
     let answerAlt = theQuestion.alternatives
 
-    for (let key in answerAlt) {
-      let value = answerAlt[key]
-      createRadioBtn(value, key)
+    for (let alt in answerAlt) {
+      let value = answerAlt[alt]
+      createRadioBtn(value, alt)
     }
   } else {
     createAnswerBox()
@@ -116,15 +124,17 @@ async function getQuestion () {
   nextURL = theQuestion.nextURL
 }
 
-// Take the answer when button clicked and empty the answer options
 let result = {}
-
+/**
+ * Takes the answer when button clicked and empty the answer options
+ */
 function recieveAnswer () {
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function buttonClicked () {
     if (theQuestion.hasOwnProperty('alternatives')) {
       stopTimer()
+
       let buttons = document.getElementsByName('alter')
 
       for (let buttonKey in buttons) {
@@ -143,11 +153,10 @@ function recieveAnswer () {
     } else {
       let value = button.previousElementSibling.value
       if (value.length === 0) return
+
       stopTimer()
-
-      if (value.length === 0) return
-
       result.answer = value
+
       let aBox = document.getElementById('answerBox')
       aBox.remove()
     }
@@ -156,9 +165,10 @@ function recieveAnswer () {
   })
 }
 
-// creating a post xmlrequest and sending answer
 let resultMessage
-
+/**
+ * Creates a fetch request and sends the answer to the question
+ */
 async function sendAnswer () {
   let answer = await window.fetch(nextURL, {
     method: 'POST',
@@ -171,6 +181,9 @@ async function sendAnswer () {
   return resp
 }
 
+/**
+ * Awaits the response from the server and then asigns the result message
+ */
 async function getResponse () {
   let answ = await sendAnswer()
   resultMessage = answ
@@ -181,8 +194,13 @@ async function getResponse () {
   checkResult()
 }
 
+/**
+ * Checks the result message from the server to see if correct answer or not
+ * Also checks if there is another question to get or else quits the quiz.
+ */
 function checkResult () {
   thePrompt.innerText = resultMessage.message
+
   let nextBtn = document.querySelector('#quiz button')
   let gameOverText = document.createElement('h3')
   let quiz = document.querySelector('#quiz')
@@ -212,7 +230,10 @@ function checkResult () {
   }
 }
 
-// Skriv ut resultat efter färdigt spel
+/**
+ * Prints the result of the quiz with players nickname and total time
+ * Also takes the top five results from the web storage to be able to create high score list
+ */
 function printResults () {
   let button = document.querySelector('button')
   button.remove()
@@ -228,13 +249,14 @@ function printResults () {
   resultP.innerText = nickName + ' won!' + '\nTotal time taken: ' + totalTime + ' seconds'
 
   document.querySelector('#quiz').appendChild(resultP)
-
   highScore.setItem(nickName, totalTime)
 
   let highScoreList = []
 
-  for (let playerName in highScore) {
-    highScoreList.push([playerName, highScore[playerName]])
+  for (let player in highScore) {
+    if (player.startsWith('Player')) {
+      highScoreList.push([player, highScore[player]])
+    }
   }
 
   highScoreList.sort(function (a, b) {
@@ -242,16 +264,20 @@ function printResults () {
   })
 
   let topFive = highScoreList.slice(0, 5)
-
-  let printPretty = topFive.map(item => 'Player: ' + item[0] + 'Time: ' + item[1])
-  createHighScore(printPretty)
+  let printTopFive = topFive.map(item => item[0] + ',\t' + ' Total time: ' + item[1])
+  createHighScore(printTopFive)
 
   quizStorage.clear()
 }
 
-function createRadioBtn (value, key) {
+/**
+ * Creates radio buttons for each alternative in the current question
+ * @param {string} value - the value of the alternative
+ * @param {string} alt - the name and number of the alternative
+ */
+function createRadioBtn (value, alt) {
   let radioDiv = document.createElement('div')
-  radioDiv.setAttribute('id', key)
+  radioDiv.setAttribute('id', alt)
   radioDiv.setAttribute('class', 'buttonDiv')
 
   let radioBtn = document.createElement('input')
@@ -266,9 +292,12 @@ function createRadioBtn (value, key) {
   radioLabel.setAttribute('for', '.optionBtn')
   radioLabel.innerText = value
 
-  document.querySelector('#' + key).appendChild(radioLabel)
+  document.querySelector('#' + alt).appendChild(radioLabel)
 }
-// va
+
+/**
+ * Creates the elements for the timer
+ */
 function createTimer () {
   let timerDiv = document.createElement('div')
   timerDiv.setAttribute('id', 'timerDiv')
@@ -284,10 +313,12 @@ function createTimer () {
 let theTimer
 let counter = 0
 let seconds
-
+/**
+ * Starts the timer to count down from 20 to 0 seconds
+ */
 function startTimer () {
   let display = document.querySelector('#time')
-  let timer = 20
+  let timer = 19
 
   display.textContent = 'You have: 20 seconds'
 
@@ -297,12 +328,16 @@ function startTimer () {
     display.textContent = 'You have: ' + seconds + ' seconds'
 
     if (--timer < 0) {
-      thePrompt.innerText = 'Time up!'
+      thePrompt.innerText = 'Time´s up!'
       stopTimer()
     }
   }, 1000)
 }
 
+/**
+ * Stops the timer when it is done and either saves the result to web storage
+ * or displays game over if time ran out
+ */
 function stopTimer () {
   clearInterval(theTimer)
   counter++
@@ -316,9 +351,14 @@ function stopTimer () {
   }
 }
 
+/**
+ * Creates the high score list by creating elements for each value of the top five scores
+ * @param {Array} arr - The set of data to be used for creating high scores
+ */
 function createHighScore (arr) {
   let theList = document.createElement('ol')
   theList.setAttribute('id', 'HSlist')
+
   let listText = document.createTextNode('High scores')
   theList.appendChild(listText)
 
@@ -326,6 +366,7 @@ function createHighScore (arr) {
     let li = document.createElement('li')
     let liNode = document.createTextNode(arr[score])
     li.setAttribute('class', 'list')
+
     li.appendChild(liNode)
     theList.appendChild(li)
   }
@@ -333,6 +374,10 @@ function createHighScore (arr) {
   document.getElementById('quiz').appendChild(theList)
 }
 
+/**
+ * Removes elements from user interface and displays game over together with an option
+ * for the player to start the quiz again
+ */
 function gameOver () {
   let questionAlt = document.getElementById('quiz')
   while (questionAlt.firstChild) {
@@ -364,6 +409,7 @@ function gameOver () {
     nextBtn.removeEventListener('click', buttonClicked)
   })
 }
+
 // Exports
 export default {
   userName,
