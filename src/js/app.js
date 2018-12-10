@@ -2,7 +2,7 @@ function userName () {
   let userP = document.querySelectorAll('p')[0]
   userP.innerText = 'Pick a nickname:'
 }
-userName()
+// userName()
 
 // creating button
 function createButton () {
@@ -10,14 +10,17 @@ function createButton () {
   submitBtn.innerText = 'Start quiz'
   document.querySelector('#quiz').appendChild(submitBtn)
 }
-createButton()
+// createButton()
 
 let quizStorage = window.sessionStorage
 let highScore = window.localStorage
 let nickName
 
 function startQuiz () {
+  userName()
+  createButton()
   createAnswerBox()
+
   let button = document.querySelector('#quiz button')
 
   button.addEventListener('click', function clickedButton (event) {
@@ -70,6 +73,7 @@ async function server () {
 
   createTimer()
   startTimer()
+
   req.addEventListener('load', function getQuestion () {
     theQuestion = req.responseText
     theQuestion = JSON.parse(theQuestion)
@@ -77,17 +81,13 @@ async function server () {
 
     if (theQuestion.hasOwnProperty('alternatives')) {
       let answerAlt = theQuestion.alternatives
-      console.log(Object.keys(answerAlt))
 
       for (let key in answerAlt) {
         let value = answerAlt[key]
-        console.log(key)
         createRadioBtn(value, key)
       }
-      // recieveAnswer()
     } else {
       createAnswerBox()
-      // recieveAnswer()
     }
     recieveAnswer()
 
@@ -95,7 +95,6 @@ async function server () {
     req.removeEventListener('load', getQuestion)
   })
 
-  console.log('in server' + nextURL)
   req.open('GET', nextURL)
   req.send()
 }
@@ -167,6 +166,8 @@ async function sendAnswer () {
 function checkResult () {
   thePrompt.innerText = resultMessage.message
   let nextBtn = document.querySelector('#quiz button')
+  let gameOverText = document.createElement('h3')
+  let quiz = document.querySelector('#quiz')
 
   if (resultMessage.message === 'Correct answer!') {
     if (resultMessage.hasOwnProperty('nextURL')) {
@@ -178,8 +179,8 @@ function checkResult () {
         nextBtn.removeEventListener('click', buttonClicked)
       })
     } else {
-      let gameOverText = document.createElement('h3')
-      let quiz = document.querySelector('#quiz')
+      // let gameOverText = document.createElement('h3')
+      // let quiz = document.querySelector('#quiz')
       quiz.insertBefore(gameOverText, quiz.childNodes[0])
 
       gameOverText.innerText = 'Game done!'
@@ -191,12 +192,18 @@ function checkResult () {
       })
     }
   } else {
-    quizStorage.clear()
-    quizStorage.setItem('nickname', nickName)
-    counter = 0
+    quiz.insertBefore(gameOverText, quiz.childNodes[0])
+
+    gameOverText.innerText = 'Game over!'
     nextBtn.innerText = 'Start again'
 
     nextBtn.addEventListener('click', function buttonClicked () {
+      quizStorage.clear()
+      quizStorage.setItem('nickname', nickName)
+      counter = 0
+
+      let theText = document.querySelector('#quiz h3')
+      theText.remove()
       nextURL = 'http://vhost3.lnu.se:20080/question/1'
       nextBtn.innerText = 'Answer!'
 
@@ -212,13 +219,15 @@ function printResults () {
   //
   // TODO: Vi har tänkt fel om tiden. Total time left är det vi har, inte taken.
   //
+  let button = document.querySelector('button')
+  button.remove()
+
   let totalTime = 0
 
   for (let i = 1; i < quizStorage.length; i++) {
     let timeLeft = parseInt(quizStorage.getItem(quizStorage.key(i)))
     let timeTaken = 20 - timeLeft
     totalTime += timeTaken
-    console.log(timeTaken)
   }
   let resultP = document.createElement('p')
   resultP.innerText = nickName + ' won!' + '\nTotal time taken: ' + totalTime + ' seconds'
@@ -226,14 +235,23 @@ function printResults () {
   document.querySelector('#quiz').appendChild(resultP)
 
   highScore.setItem(nickName, totalTime)
-  console.log('HIGHSCORE' + highScore)
+
+  let highScoreList = []
 
   for (let playerName in highScore) {
-    console.log('PLAYER ' + playerName)
-    let playerTime = highScore[playerName]
-
-    console.log('Time ' + playerTime)
+    highScoreList.push([playerName, highScore[playerName]])
+    // console.log('PLAYER ' + playerName)
+    // let playerTime = highScore[playerName]
   }
+
+  highScoreList.sort(function (a, b) {
+    return a[1] - b[1]
+  })
+  let topFive = highScoreList.slice(0, 5)
+
+  let printPretty = topFive.map(item => 'Player: ' + item[0] + 'Time: ' + item[1])
+  console.log(printPretty)
+  createHighScore(printPretty)
 
   quizStorage.clear()
 }
@@ -287,6 +305,7 @@ function startTimer () {
     display.textContent = 'You have: ' + seconds + ' seconds'
 
     if (--timer < 0) {
+      // setTimeout(stopTimer(), 3000)
       display.textContent = 'Time up!'
     }
   }, 1000)
@@ -296,8 +315,29 @@ function stopTimer () {
   clearInterval(theTimer)
   counter++
 
-  quizStorage.setItem('time' + counter, seconds)
-  let timer = document.querySelector('#timerDiv')
+  if (seconds > 0) {
+    quizStorage.setItem('time' + counter, seconds)
+  } else {
+    console.log('game over!!!')
+  }
 
+  let timer = document.querySelector('#timerDiv')
   timer.remove()
+}
+
+function createHighScore (arr) {
+  let theList = document.createElement('ol')
+  theList.setAttribute('id', 'HSlist')
+  let listText = document.createTextNode('High scores')
+  theList.appendChild(listText)
+
+  for (let score in arr) {
+    let li = document.createElement('li')
+    let liNode = document.createTextNode(arr[score])
+    li.setAttribute('class', 'list')
+    li.appendChild(liNode)
+    theList.appendChild(li)
+  }
+
+  document.getElementById('quiz').appendChild(theList)
 }

@@ -1,0 +1,38 @@
+/* .optionBtn {
+  border: 1px solid black;
+  background-color: #a6b8bb;
+  width: 100px;
+  height: 20px;
+} */
+
+body {
+  background-color: #baf2fc;
+  margin: 30px;
+}
+
+h1 {
+  text-align: center;
+  color: #3e2f77;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 40px;
+}
+
+#quiz {
+  margin-left: 25%;
+}
+
+p {
+  margin-left: 25%;
+}
+
+#answerBox {
+  background-color: antiquewhite;
+  align-content: center;
+}
+
+#timerDiv {
+  padding-top: 15px;
+}
+
+button {
+}
